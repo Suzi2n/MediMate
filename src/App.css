@@ -1,0 +1,6 @@
+ /* 모든 페이지에서 항상 스크롤바가 고정된다. 이 코드가 없으면 글씨 삐뚤어짐 */
+html, body {
+  overflow-y: scroll;
+  font-family: 'Noto Sans KR', sans-serif;
+
+}
