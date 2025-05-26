@@ -24,7 +24,6 @@ import {
   List as MUIList,
   ListItem as MUIListItem,
   ListItemText as MUIListItemText,
-  Skeleton,
 } from "@mui/material";
 import PeopleIcon from "@mui/icons-material/People";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -36,12 +35,26 @@ import React, { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import { useLogout } from "../hooks/useLogout";
+
+import { Skeleton } from "@mui/material";
+
 import {
   addClinicVisit,
   deleteClinicVisit,
   getClinicVisits,
   updateClinicVisit,
 } from "../types/clinicVisitService";
+
+import {
+  getDocs,
+  query,
+  where,
+  collection,
+  orderBy,
+  limit,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { requestAccessLog } from "../apis/logAccessRequest";
 
 const drawerWidth = 240;
 
@@ -50,6 +63,63 @@ interface ClinicVisit {
   date: string;
   note: string;
 }
+
+const checkApproval = async (
+  searcherId: string,
+  patientId: string,
+  searcherNickname: string
+) => {
+  const q = query(
+    collection(db, "access_logs"),
+    where("searcherId", "==", searcherId),
+    where("targetPatientId", "==", patientId),
+    where("searcherNickname", "==", searcherNickname),
+    where("status", "in", ["pending", "notified", "rejected"]), // 🔥 명시적
+    where("timestamp", "!=", null),
+    orderBy("timestamp", "desc"),
+    limit(5)
+    /*
+     collection(db, "access_logs"),
+    where("searcherId", "==", searcherId),
+    where("targetPatientId", "==", patientId),
+    where("searcherNickname", "==", searcherNickname),
+
+    where("timestamp", "!=", null),
+    orderBy("timestamp", "desc"),
+    limit(1)
+    */
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+
+  // 로그 상태 확인
+  snap.docs.forEach((doc) => {
+    const data = doc.data();
+    console.log(
+      "로그 상태 확인:",
+      data.status,
+      " | timestamp:",
+      data.timestamp.toDate()
+    );
+  });
+
+  /*
+  // 최신 문서 중에서 *가장 마지막 요청*만 고려
+  const latestDoc = snap.docs.find((doc) =>
+    ["pending", "notified", "rejected"].includes(doc.data().status)
+  );
+  return latestDoc?.data().status ?? null;
+  */
+  const sorted = snap.docs
+    .filter((doc) => doc.data().timestamp) // timestamp 존재하는 것만
+    .sort(
+      (a, b) => b.data().timestamp.toMillis() - a.data().timestamp.toMillis()
+    );
+
+  const latestStatus = sorted[0]?.data().status;
+  console.log("🔥 최신 승인 상태:", latestStatus);
+  return latestStatus;
+};
 
 export default function UserDashboard() {
   const { user } = useUser();
@@ -74,17 +144,19 @@ export default function UserDashboard() {
   const [editTarget, setEditTarget] = useState<ClinicVisit | null>(null);
   const [form, setForm] = useState({ date: "", note: "" });
 
-
-   const [healthRecords, setHealthRecords] = useState<any[]>([]);
+  const [healthRecords, setHealthRecords] = useState<any[]>([]);
   const [recordEditTarget, setRecordEditTarget] = useState<{
     idx: number;
     date: string;
     content: string;
   } | null>(null);
-   const [recordForm, setRecordForm] = useState({ date: "", content: "" });
+  const [recordForm, setRecordForm] = useState({ date: "", content: "" });
 
-   
   const [loading, setLoading] = useState(false);
+
+  if (user?.role !== "user") {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSearch = async () => {
     if (!searchValue.includes("#")) {
@@ -104,11 +176,38 @@ export default function UserDashboard() {
       }
 
       const data = await res.json();
-      setDashboardData(data);
-      const visits = await getClinicVisits(data.patientId);
-      setClinicVisits(visits);
-    setHealthRecords(data.healthRecords || []);
-    } catch (err) {
+
+      const patientId = data.patientId;
+
+      /*
+      // 동의 로직
+      // 2️⃣ Firestore에 access_log를 pending 상태로 기록
+      await requestAccessLog(user.uid, patientId, user.name);
+
+      // 3️⃣ 보호자 승인 polling
+      let finalStatus: string | null = null;
+      for (let i = 0; i < 10; i++) {
+        const status = await checkApproval(user.uid, patientId, user.name);
+        if (status === "notified" || status === "rejected") {
+          finalStatus = status;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 10000));
+      }
+
+      if (finalStatus === "rejected") {
+        alert("대상자가 접근을 거절했습니다.");
+        return;
+      }
+
+      // 4️⃣ 승인 완료되면 대시보드 표시
+      if (finalStatus === "notified") { */
+        setDashboardData(data);
+        const visits = await getClinicVisits(data.patientId);
+        setClinicVisits(visits);
+        setHealthRecords(data.healthRecords || []);
+      }
+   /* } */ catch (err) {
       console.error("조회 오류:", err);
       alert("데이터 조회 중 오류 발생");
     } finally {
@@ -160,7 +259,7 @@ export default function UserDashboard() {
     setForm({ date: "", note: "" });
     setEditTarget(null);
   };
-// 없어도 되나?
+
   const renderList = (
     type: "symptoms" | "medications" | "clinicVisits" | "healthRecords"
   ) => {
@@ -178,35 +277,24 @@ export default function UserDashboard() {
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
-      <AppBar position="fixed" sx={{ zIndex: 1201, bgcolor: "#A71963" }}>
+      <AppBar position="fixed" sx={{ zIndex: 1201, bgcolor: "#007AFF" }}>
         <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="h6">
-            Medimate 대시보드{" "}
-            <Box
-              component="span"
-              sx={{
-                bgcolor: "#EC407A",
-                color: "#fff",
-                px: 1.5,
-                py: 0.5,
-                ml: 2,
-                borderRadius: "8px",
-                fontSize: "0.8rem",
-              }}
+          <Typography variant="h6">Medimate 대시보드</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {user && (
+              <span className="text-gray-200 font-semibold">{user.name}님</span>
+            )}
+
+            <Button
+              color="inherit"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
             >
-              보호자용 (읽기 전용)
-            </Box>
-          </Typography>
-          <Button
-            color="inherit"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-          >
-            로그아웃
-          </Button>
+              로그아웃
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
-
       <Drawer
         variant="permanent"
         sx={{
@@ -225,7 +313,7 @@ export default function UserDashboard() {
               <ListItemIcon>
                 <PeopleIcon />
               </ListItemIcon>
-              <ListItemText primary="환자 검색" />
+              <ListItemText primary="환자 목록" />
             </ListItem>
           </List>
           <Divider />
@@ -253,9 +341,9 @@ export default function UserDashboard() {
             }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                "&.Mui-focused fieldset": { borderColor: "#A71963" },
+                "&.Mui-focused fieldset": { borderColor: "#007AFF" },
               },
-              "& label.Mui-focused": { color: "#A71963" },
+              "& label.Mui-focused": { color: "#007AFF" },
             }}
           />
         </Box>
@@ -294,7 +382,12 @@ export default function UserDashboard() {
               </Typography>
 
               <Grid container spacing={2} gap={10} justifyContent="center">
-                {["symptoms", "medications", "clinicVisits", "healthRecords"].map((type) => (
+                {[
+                  "symptoms",
+                  "medications",
+                  "clinicVisits",
+                  "healthRecords",
+                ].map((type) => (
                   <Grid item xs={12} md={4} key={type}>
                     <Card sx={{ minWidth: 250 }}>
                       <CardActionArea onClick={() => handleOpen(type as any)}>
@@ -360,7 +453,9 @@ export default function UserDashboard() {
                         <>
                           <Divider sx={{ my: 2 }} />
                           <Typography variant="subtitle1">
-                            {editTarget ? "진료 기록 수정" : "새 진료 기록 추가"}
+                            {editTarget
+                              ? "진료 기록 수정"
+                              : "새 진료 기록 추가"}
                           </Typography>
                           <Box
                             component="form"
@@ -398,11 +493,10 @@ export default function UserDashboard() {
                             </Button>
                           </Box>
                         </>
-                      )
-                      
-                      }
+                      )}
                     </>
-                    ) : selectedType === "healthRecords" ? ( <>
+                  ) : selectedType === "healthRecords" ? (
+                    <>
                       <MUIList>
                         {healthRecords.map((record, idx) => (
                           <MUIListItem
@@ -413,7 +507,10 @@ export default function UserDashboard() {
                                 <IconButton
                                   onClick={() => {
                                     setRecordEditTarget({ idx, ...record });
-                                    setRecordForm({ date: record.date, content: record.content });
+                                    setRecordForm({
+                                      date: record.date,
+                                      content: record.content,
+                                    });
                                   }}
                                 >
                                   <EditIcon />
@@ -421,7 +518,10 @@ export default function UserDashboard() {
                               )
                             }
                           >
-                            <MUIListItemText primary={record.date} secondary={record.content} />
+                            <MUIListItemText
+                              primary={record.date}
+                              secondary={record.content}
+                            />
                           </MUIListItem>
                         ))}
                       </MUIList>
@@ -430,7 +530,9 @@ export default function UserDashboard() {
                         <>
                           <Divider sx={{ my: 2 }} />
                           <Typography variant="subtitle1">
-                            {recordEditTarget ? "건강일지 수정" : "건강일지 추가"}
+                            {recordEditTarget
+                              ? "건강일지 수정"
+                              : "건강일지 추가"}
                           </Typography>
                           <Box
                             component="form"
@@ -438,7 +540,9 @@ export default function UserDashboard() {
                               e.preventDefault();
                               const updated = [...healthRecords];
                               if (recordEditTarget) {
-                                updated[recordEditTarget.idx] = { ...recordForm };
+                                updated[recordEditTarget.idx] = {
+                                  ...recordForm,
+                                };
                               } else {
                                 updated.push({ ...recordForm });
                               }
@@ -458,7 +562,10 @@ export default function UserDashboard() {
                               fullWidth
                               value={recordForm.date}
                               onChange={(e) =>
-                                setRecordForm({ ...recordForm, date: e.target.value })
+                                setRecordForm({
+                                  ...recordForm,
+                                  date: e.target.value,
+                                })
                               }
                               InputLabelProps={{ shrink: true }}
                               sx={{ mb: 2 }}
@@ -470,18 +577,24 @@ export default function UserDashboard() {
                               rows={3}
                               value={recordForm.content}
                               onChange={(e) =>
-                                setRecordForm({ ...recordForm, content: e.target.value })
+                                setRecordForm({
+                                  ...recordForm,
+                                  content: e.target.value,
+                                })
                               }
                               sx={{ mb: 2 }}
                             />
-                            <Button type="submit" variant="contained" color="primary">
+                            <Button
+                              type="submit"
+                              variant="contained"
+                              color="primary"
+                            >
                               {recordEditTarget ? "수정" : "추가"}
                             </Button>
                           </Box>
                         </>
                       )}
                     </>
-                    
                   ) : (
                     <DialogContent>
                       {selectedType && renderList(selectedType)}

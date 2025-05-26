@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { Outlet, useNavigate, Link } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { useUser } from "../contexts/UserContext";
@@ -6,7 +6,7 @@ import { useLogout } from "../hooks/useLogout";
 
 const HomeLayout = () => {
   const navigate = useNavigate();
-  const { user } = useUser(); 
+  const { user } = useUser();
 
   const handleLogout = useLogout();
 
@@ -15,27 +15,33 @@ const HomeLayout = () => {
       <nav className="fixed top-0 w-full bg-white shadow-md z-50">
         <div className="max-w-screen-xl mx-auto px-6 py-4 flex justify-between items-center">
           {/* 로고 */}
-          <div className="text-2xl font-bold text-[#A71963] cursor-pointer" onClick={() => navigate('/')}>
+          <div
+            className="text-2xl font-bold text-[#001F54] cursor-pointer"
+            onClick={() => navigate("/")}
+          >
             Medimate
           </div>
- {/* #3FE0C5 */}
           {/* 메뉴 */}
           <div className="hidden md:flex gap-8 text-gray-700 text-base font-medium">
-            {user?.role === 'user' && (
+            {user?.role === "user" && (
               <>
-                <Link to="/schedule" className="hover:text-[#A71963] transition">스케줄</Link>
-            <Link to= "/user-dashboard" className="hover:text-[#A71963] transition">대시보드</Link>
-            {/* <a href="#" className="hover:text-[#A71963] transition">건강 일지</a> */}
+                <Link
+                  to="/user-dashboard"
+                  className="hover:text-[#A71963] transition"
+                >
+                  대시보드
+                </Link>
               </>
             )}
-            {user?.role === 'doctor' && (
+            {user?.role === "doctor" && (
               <>
-              <Link to= "/dashboard" className="hover:text-[#A71963] transition">대시보드</Link>
-            {/*<Link to="/schedule" className="hover:text-[#A71963] transition">스케줄</Link>
-                <Link to="/emergency" className="hover:text-[#A71963] transition">응급 환자 관리</Link>*/}
-                <Link to="/patient" className="hover:text-[#A71963] transition">환자 관리</Link>
+                <Link
+                  to="/dashboard"
+                  className="hover:text-[#A71963] transition"
+                >
+                  대시보드
+                </Link>
               </>
-
             )}
           </div>
 
@@ -43,8 +49,13 @@ const HomeLayout = () => {
           <div className="flex gap-3 items-center">
             {user ? (
               <>
-                <span className="text-gray-700 font-semibold">{user.name}님</span>
-                <Link to="/mypage" className="text-sm px-4 py-2 text-[#A71963] bg-white hover:bg-gray-200 rounded border border-[#A71963] transition">
+                <span className="text-gray-700 font-semibold">
+                  {user.name}님
+                </span>
+                <Link
+                  to="/mypage"
+                  className="text-sm px-4 py-2 text-[#A71963] bg-white hover:bg-gray-200 rounded border border-[#A71963] transition"
+                >
                   내 정보
                 </Link>
                 <button
@@ -56,10 +67,16 @@ const HomeLayout = () => {
               </>
             ) : (
               <>
-                <Link to="/login" className="text-sm px-4 py-2 text-[#A71963] bg-white hover:bg-gray-200 rounded border border-[#A71963] transition">
+                <Link
+                  to="/login"
+                  className="text-md text-black hover:underline"
+                >
                   로그인
                 </Link>
-                <Link to="/role-select" className="text-sm px-4 py-2 bg-[#A71963] text-white rounded hover:bg-pink-700 transition">
+                <Link
+                  to="/role-select"
+                  className="text-md text-black hover:underline ml-4"
+                >
                   회원가입
                 </Link>
               </>

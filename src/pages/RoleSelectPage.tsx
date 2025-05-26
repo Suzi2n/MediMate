@@ -1,35 +1,43 @@
 import { useNavigate } from "react-router-dom";
+import { UserPlus, Stethoscope } from "lucide-react";
 
 const RoleSelectPage = () => {
   const navigate = useNavigate();
 
   const handleRoleSelect = (role: "user" | "doctor") => {
-    navigate("/signup", { state: { role } }); // 🔁 role 값을 signup 페이지로 전달
+    navigate("/signup", { state: { role } }); // role 값을 전달
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen gap-6 bg-gray-50 px-4">
-        <div className="mt-10 items-center mt-70 flex flex-col gap-4 border-2 border-none rounded-xl p-8 shadow-md bg-white w-full max-w-md">
-            <h1 className="text-3xl font-bold text-[#A71963]">
-               회원가입 유형을 선택하세요
-            </h1>
-            <div className="flex flex-col gap-4 mt-8 w-full max-w-xs">
-            <button
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+      <div className="bg-white border border-gray-200 shadow-md p-14 w-full max-w-xl rounded-md text-center h-[450px]">
+        <div className="mb-10 ">
+          <h1 className="text-3xl font-bold text-gray-800 mb-3">회원가입 유형 선택</h1>
+          <p className="text-base text-gray-500">
+            Medimate 서비스에 가입하실 유형을 선택해주세요.
+          </p>
+
+
+        </div>
+
+        <div className="flex flex-col gap-6 items-center w-full max-w-xs mx-auto">
+          <button
             onClick={() => handleRoleSelect("user")}
-            className="px-8 py-4 rounded-xl bg-white border-2 border-[#A71963] text-[#A71963] font-semibold text-lg shadow-md hover:shadow-lg hover:bg-[#fef2f7] transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer"
-        >
-          👤 일반 사용자 회원가입
-            </button>
 
-            <button
+           className="w-full flex items-center justify-center gap-2 px-8 py-5 rounded-xl bg-white border-2 border-[#007AFF] text-[#007AFF] font-semibold text-xl shadow-md hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer mt-5"
+        >
+            <UserPlus className="w-6 h-6" /> 일반 사용자 회원가입
+          </button>
+
+          <button
             onClick={() => handleRoleSelect("doctor")}
-            className="px-8 py-4 rounded-xl bg-gradient-to-r from-[#A71963] to-pink-500 text-white font-semibold text-lg shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer"
-        >
-          🩺 의료진 회원가입
-            </button>
-        </div>
-        </div>
 
+               className="w-full flex items-center justify-center gap-2 px-8 py-5 rounded-xl bg-gradient-to-r from-[#007AFF] to-blue-400 text-white font-semibold text-xl shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer"
+        >
+            <Stethoscope className="w-6 h-6" /> 의료진 회원가입
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,13 +1,12 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { useLocation } from "react-router-dom";
+import { UserPlus } from "lucide-react";
 
-// ✅ 스키마에 userId 필드 추가
 const schema = z
   .object({
     email: z.string().email({ message: "올바른 이메일 형식이 아닙니다." }),
@@ -20,7 +19,9 @@ const schema = z
       .min(8, { message: "비밀번호는 최소 8자 이상이어야 합니다." })
       .max(20, { message: "비밀번호는 20자 이하여야 합니다." }),
     name: z.string().min(1, { message: "이름을 입력해주세요." }),
-    userId: z.string().min(4, { message: "아이디는 최소 4자 이상이어야 합니다." }),
+    agreeTerms: z.boolean().refine((val) => val === true, {
+      message: "가입 약관에 동의해주세요.",
+    }),
   })
   .refine((data) => data.password === data.passwordCheck, {
     message: "비밀번호가 일치하지 않습니다.",
@@ -31,9 +32,8 @@ type FormFields = z.infer<typeof schema>;
 
 const SignUpPage = () => {
   const navigate = useNavigate();
-
   const location = useLocation();
-  const role = location.state?.role ?? "user"; // 기본값: user
+  const role = location.state?.role ?? "user";
 
   const {
     register,
@@ -44,105 +44,92 @@ const SignUpPage = () => {
     mode: "onBlur",
   });
 
-  const onSubmit: SubmitHandler<FormFields> = async ({ email, password, name, userId }) => {
+  const onSubmit: SubmitHandler<FormFields> = async ({ email, password, name }) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-      // ✅ Firebase Auth displayName 에 아이디 설정
-      await updateProfile(userCredential.user, { displayName: userId });
+      await updateProfile(userCredential.user, { displayName: name });
 
       const userData: any = {
         name,
-        userId,
         email,
         role,
         createdAt: serverTimestamp(),
       };
 
-      const generatePatientCode = () => {
-        return Math.random().toString(36).substring(2, 8).toUpperCase(); // 예: A7F9Z2
-      };
-      
-      // ✅ role이 환자일 경우에만 식별 코드 추가
       if (role === "user") {
-        userData.patientCode = generatePatientCode();
-      }
-      
-      await setDoc(doc(db, "users", userCredential.user.uid), userData);
-      
-      alert("회원가입에 성공했습니다!");
-      navigate("/");
-    } catch (error: unknown) {
-      let msg = "회원가입에 실패했습니다.";
-      if (error instanceof Error && "code" in error) {
-        switch ((error as { code: string }).code) {
-        case "auth/email-already-in-use":
-          msg = "이미 사용 중인 이메일입니다.";
-          break;
-        case "auth/weak-password":
-          msg = "비밀번호가 너무 약합니다.";
-          break;
-        case "auth/invalid-email":
-          msg = "이메일 형식이 올바르지 않습니다.";
-          break;
-        default:
-          msg += ` (${(error as Error).message})`;
-          msg += ` (${error.message})`;
-          break;
+        const generateCode = () =>
+          Array.from({ length: 5 }, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]).join("");
+        userData.patientCode = generateCode();
       }
 
+      await setDoc(doc(db, "users", userCredential.user.uid), userData);
+      alert("회원가입에 성공했습니다!");
+      navigate("/");
+    } catch (error: any) {
+      let msg = "회원가입에 실패했습니다.";
+      if (error.code === "auth/email-already-in-use") msg = "이미 사용 중인 이메일입니다.";
+      else if (error.code === "auth/weak-password") msg = "비밀번호가 너무 약합니다.";
+      else if (error.code === "auth/invalid-email") msg = "이메일 형식이 잘못되었습니다.";
+      else msg += ` (${error.message})`;
       alert(msg);
-        console.error(error);
-      }
-    };
+      console.error(error);
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6">
-      <div className="text-2xl font-bold">회원가입</div>
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-gray-100">
+      <div className="bg-white border border-gray-200 shadow-md p-14 w-full max-w-xl rounded-md">
+        <div className="flex flex-col items-center mb-10">
+          <UserPlus className="w-12 h-12 mb-3 text-[#007AFF]" />
+          <div className="text-3xl font-bold text-gray-800 mb-2">회원가입</div>
+          <div className="text-base text-gray-500 text-center">Medimate 서비스 가입을 환영합니다.</div>
+        </div>
 
-      <form className="w-[430px] flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
-        {[
-          { name: "email", label: "이메일", type: "email", placeholder: "이메일을 입력하세요" },
-          { name: "userId", label: "아이디", type: "text", placeholder: "사용할 아이디를 입력하세요" },
-          { name: "password", label: "비밀번호", type: "password", placeholder: "비밀번호를 입력하세요" },
-          { name: "passwordCheck", label: "비밀번호 확인", type: "password", placeholder: "비밀번호를 다시 입력하세요" },
-          { name: "name", label: "이름", type: "text", placeholder: "이름을 입력하세요" },
-        ].map(({ name, label, type, placeholder }) => (
-          <div key={name} className="flex flex-col">
-            <div className="flex items-center">
-              <label htmlFor={name} className="w-40 text-sm font-medium">
-                {label}
-                <span className="text-red-500 ml-1">*</span>
-              </label>
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)}>
+          {[
+            { name: "email", type: "email", placeholder: "이메일" },
+            { name: "password", type: "password", placeholder: "비밀번호" },
+            { name: "passwordCheck", type: "password", placeholder: "비밀번호 확인" },
+            { name: "name", type: "text", placeholder: "이름" },
+          ].map(({ name, type, placeholder }) => (
+            <div key={name}>
               <input
-                id={name}
                 type={type}
                 placeholder={placeholder}
                 {...register(name as keyof FormFields)}
-                className={`flex-1 border p-2 rounded-sm focus:border-white focus:outline-none ${
+                className={`w-full border px-4 py-3 text-base rounded focus:outline-none focus:ring-2 focus:ring-[#807bff] ${
                   errors[name as keyof typeof errors]
-                    ? "border-red-500 bg-red-50"
+                    ? "border-red-500 bg-red-100"
                     : "border-gray-300"
                 }`}
               />
+              {errors[name as keyof typeof errors] && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors[name as keyof typeof errors]?.message as string}
+                </div>
+              )}
             </div>
-            {errors[name as keyof typeof errors] && (
-              <div className="text-red-500 text-xs ml-40 mt-1">
-                {errors[name as keyof typeof errors]?.message as string}
-              </div>
-            )}
-          </div>
-        ))}
+          ))}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-4 w-full bg-[#A71963] text-white py-2 rounded hover:bg-pink-700 disabled:bg-gray-300 transition cursor-pointer"
-        >
-          가입하기
-        </button>
-      </form>
+          <div className="flex items-start gap-2">
+            <input type="checkbox" {...register("agreeTerms")} className="mt-1 w-5 h-5 accent-blue-600" />
+            <span className="text-md text-gray-700 leading-5">
+              가입을 위해 <strong>약관</strong>과 <strong>개인정보 보호정책</strong>에 동의합니다.
+            </span>
+          </div>
+          {errors.agreeTerms && (
+            <div className="text-red-500 text-sm">{errors.agreeTerms.message}</div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-[#007AFF] text-white py-3 text-lg font-bold rounded hover:bg-[#0066d6] active:bg-[#0055bb] disabled:bg-[#d0d0d0] disabled:cursor-not-allowed transition"
+          >
+            가입하기
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
