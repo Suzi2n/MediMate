@@ -5,7 +5,7 @@ const RoleSelectPage = () => {
   const navigate = useNavigate();
 
   const handleRoleSelect = (role: "user" | "doctor") => {
-    navigate("/signup", { state: { role } }); // role 값을 전달
+    navigate("/signup", { state: { role } });
   };
 
   return (

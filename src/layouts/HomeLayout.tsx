@@ -26,7 +26,7 @@ const HomeLayout = () => {
             {user?.role === "user" && (
               <>
                 <Link
-                  to="/user-dashboard"
+                  to="/dashboard"
                   className="hover:text-[#A71963] transition"
                 >
                   대시보드

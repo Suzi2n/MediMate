@@ -41,11 +41,10 @@ const LoginPage = () => {
       }
 
       const userData = userSnap.data();
+      
       // role 기준으로 이동
-      if (userData.role === "doctor") {
+      if (userData.role === "doctor" || userData.role === "user") {
         navigate("/dashboard", { replace: true });
-      } else if (userData.role === "user") {
-        navigate("/user-dashboard", { replace: true });
       } else {
         navigate("/", { replace: true });
       }

@@ -13,7 +13,7 @@ import {
 
 import { useOutletContext } from "react-router-dom";
 
-export default function DoctorDashboard() {
+export default function DashboardPage() {
   const navigate = useNavigate();
   
 const [loading, setLoading] = useState(false);
@@ -62,7 +62,7 @@ const [loading, setLoading] = useState(false);
               <Card sx={{ minWidth: 250 }}>
                 <CardActionArea
                   onClick={() => {
-                    /* TODO */
+              
                   }}
                 >
                   <CardContent>
@@ -80,7 +80,7 @@ const [loading, setLoading] = useState(false);
               <Card sx={{ minWidth: 250 }}>
                 <CardActionArea
                   onClick={() => {
-                    /* TODO */
+                   
                   }}
                 >
                   <CardContent>
@@ -99,9 +99,10 @@ const [loading, setLoading] = useState(false);
                 <CardActionArea
                   onClick={() =>
                     navigate(
-                      `/dashboard/patient/${dashboardData.patientId}/clinic-visits`
-                    )
-                  }
+                      `/dashboard/clinic-visits/${dashboardData.customId}`
+                    )}
+                    
+                    
                 >
                   <CardContent>
                     <Typography variant="h6" sx={{ width: 650, height: 270 }}>

@@ -24,7 +24,14 @@ import { useUser } from "../contexts/UserContext";
 import { useLogout } from "../hooks/useLogout";
 import { requestAccessLog } from "../apis/logAccessRequest";
 import { db } from "../firebase";
-import { getDocs, query, where, collection, orderBy, limit } from "firebase/firestore";
+import {
+  getDocs,
+  query,
+  where,
+  collection,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 
 const drawerWidth = 240;
 
@@ -42,21 +49,24 @@ const checkApproval = async (searcherId, patientId, searcherNickname) => {
   const snap = await getDocs(q);
   if (snap.empty) return null;
   const sorted = snap.docs
-    .filter(doc => doc.data().timestamp)
-    .sort((a, b) => b.data().timestamp.toMillis() - a.data().timestamp.toMillis());
+    .filter((doc) => doc.data().timestamp)
+    .sort(
+      (a, b) => b.data().timestamp.toMillis() - a.data().timestamp.toMillis()
+    );
   return sorted[0]?.data().status;
 };
 
-export default function DoctorDashboardLayout() {
+export default function DashboardLayout() {
   const { user } = useUser();
   const handleLogout = useLogout();
   const navigate = useNavigate();
+  const role = user?.role;
 
   const [searchValue, setSearchValue] = useState("");
   const [dashboardData, setDashboardData] = useState(null);
-    const [patientName, setPatientName] = useState<string | null>(null);
+  const [patientName, setPatientName] = useState<string | null>(null);
 
-    const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
     if (!searchValue.includes("#")) {
@@ -64,11 +74,13 @@ export default function DoctorDashboardLayout() {
       return;
     }
     const [name, code] = searchValue.split("#");
-setPatientName(name.trim());
+    setPatientName(name.trim());
 
- setLoading(true); // 로딩 시작
+    setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8001/api/patient-dashboard?name=${name}&code=${code}`);
+      const res = await fetch(
+        `http://localhost:8001/api/patient-dashboard?name=${name}&code=${code}`
+      );
       if (!res.ok) {
         alert("환자를 찾을 수 없습니다.");
         return;
@@ -76,8 +88,7 @@ setPatientName(name.trim());
       const data = await res.json();
       const patientId = data.patientId;
 
-    
-/*
+      /*
       // 동의 로직
       // 2️⃣ Firestore에 access_log를 pending 상태로 기록
       await requestAccessLog(user.uid, patientId, user.name);
@@ -115,12 +126,23 @@ setPatientName(name.trim());
       <CssBaseline />
       <AppBar position="fixed" sx={{ zIndex: 1201, bgcolor: "#007AFF" }}>
         <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="h6">Medimate 대시보드</Typography>
+          {role === "doctor" ? (
+            <Typography variant="h6">Medimate 대시보드</Typography>
+          ) : role === "user" ? (
+            <Typography variant="h6">
+              Medimate 회원용 대시보드 (읽기용)
+            </Typography>
+          ) : null}
+
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             {user && (
               <span className="text-gray-200 font-semibold">{user.name}님</span>
             )}
-            <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
+            <Button
+              color="inherit"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+            >
               로그아웃
             </Button>
           </Box>
@@ -155,7 +177,6 @@ setPatientName(name.trim());
       <Box component="main" sx={{ flexGrow: 1, bgcolor: "#f9f9f9", p: 3 }}>
         <Toolbar />
 
-        {/* 🔍 검색창 */}
         <Box sx={{ mb: 3 }}>
           <TextField
             label="환자 검색 (예: 김철수#1234)"
@@ -182,8 +203,8 @@ setPatientName(name.trim());
           />
         </Box>
 
-        {/* 🔽 하위 콘텐츠 렌더 */}
-        <Outlet context={{ dashboardData, setDashboardData, patientName  }} />
+        {/* 하위 콘텐츠 렌더 */}
+        <Outlet context={{ dashboardData, setDashboardData, patientName }} />
       </Box>
     </Box>
   );

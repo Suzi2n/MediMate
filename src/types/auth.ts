@@ -8,7 +8,6 @@ export type RequestSignupDto = {
     bio?: string;
     avatar?: string;
     password: string;
-    //phone_number: string;
 };
 
 export type ResponseSignupDto = CommonResponse<{

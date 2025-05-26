@@ -13,7 +13,7 @@ const Redirector = () => {
     } else if (user.role === "doctor") {
       navigate("/dashboard");
     } else if (user.role === "user") {
-      navigate("/user-dashboard");
+      navigate("/dashboard");
     } else {
       navigate("/login"); // fallback
     }

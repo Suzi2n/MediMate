@@ -12,8 +12,9 @@ import RoleSelectPage from "./pages/RoleSelectPage";
 import UserDashboardPage from "./pages/UserDashboardPage";
 import Redirector from "./pages/Redirector";
 import ClinicVisitsPage from "./pages/ClinicVisitsPage";
-import DoctorDashboardLayout from "./layouts/DoctorDashboardLayout";
-import DoctorDashboard from "./pages/DoctorDashboard";
+import DashboardLayout from "./layouts/DashboardLayout";
+import DashboardPage from "./pages/DashboardPage";
+
 
 function App() {
   return (
@@ -41,20 +42,15 @@ function AppContent() {
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 
-        {/* 의사 및 보호자 공통 레이아웃 */}
-        <Route path="/dashboard" element={<DoctorDashboardLayout />}>
+        {/* 의사 및 보호자 공통 레이아웃
+        {user?.role === "doctor" && ( */}
+
+        <Route path="/dashboard" element={<DashboardLayout />}>
           {/* 역할에 따라 내부에서 검사 */}
-          <Route index element={<DoctorDashboard />} />
-          <Route
-            path="patient/:id/clinic-visits"
-            element={<ClinicVisitsPage />}
-          />
+          <Route index element={<DashboardPage />} />
+          <Route path="/dashboard/clinic-visits/:customId" element={<ClinicVisitsPage />} />
         </Route>
 
-        {/* 보호자 대시보드 별도 */}
-        {user?.role === "user" && (
-          <Route path="/user-dashboard" element={<UserDashboardPage />} />
-        )}
       </Routes>
     </Router>
   );

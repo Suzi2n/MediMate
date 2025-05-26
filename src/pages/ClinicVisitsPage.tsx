@@ -1,6 +1,6 @@
-// ClinicVisitsPage.tsx
+
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Typography,
   List,
@@ -10,6 +10,8 @@ import {
   Button,
   Box,
   Divider,
+  Card,
+  CardContent,
 } from "@mui/material";
 import {
   getClinicVisits,
@@ -18,142 +20,288 @@ import {
   updateClinicVisit,
 } from "../types/clinicVisitService";
 import { useUser } from "../contexts/UserContext";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import { db } from "../firebase";
+import { Timestamp } from "firebase/firestore";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { fontSize } from "@mui/system";
 
 interface ClinicVisit {
   id: string;
-  date: string;
-  note: string;
+  clinicDate: Timestamp | string;
+  doctorName: string;
+  originalText: string;
+  summaryText: string;
+  translatedText: string;
+  createdAt: Timestamp | string;
 }
 
 export default function ClinicVisitsPage() {
   const { user } = useUser();
   const isDoctor = user?.role === "doctor";
-  const { id: patientId } = useParams();
+  const { customId } = useParams();
+  const navigate = useNavigate();
   const [visits, setVisits] = useState<ClinicVisit[]>([]);
-  const [form, setForm] = useState({ date: "", note: "" });
+  const [selectedVisit, setSelectedVisit] = useState<ClinicVisit | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    clinicDate: "",
+    doctorName: "",
+    originalText: "",
+    summaryText: "",
+    translatedText: "",
+  });
   const [editTarget, setEditTarget] = useState<ClinicVisit | null>(null);
 
   useEffect(() => {
-    if (!patientId) return;
-
+    if (!customId) return;
     const fetchData = async () => {
-      const visits = await getClinicVisits(patientId);
+      const visits = await getClinicVisits(customId);
       setVisits(visits);
-
-      const existingNotes = visits.map((v) => v.note);
-
-      // AI 요약 가져오기
-      const q = query(
-        collection(db, "ai_summaries"),
-        where("patientId", "==", patientId),
-        orderBy("createdAt", "desc")
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const latest = snap.docs[0].data();
-        const { summary, date } = latest;
-
-        if (!existingNotes.includes(summary)) {
-          const newVisit = await addClinicVisit(patientId, date, summary);
-          setVisits((prev) => [...prev, newVisit]);
-          console.log("✅ AI 요약 자동 등록 완료");
-        } else {
-          console.log("⚠️ 이미 등록된 AI 요약입니다");
-        }
-      }
+      if (visits.length > 0) setSelectedVisit(visits[0]);
     };
-
     fetchData();
-  }, [patientId]);
+  }, [customId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.date || !form.note || !patientId) return;
+    if (!form.clinicDate || !form.originalText || !customId) return;
+
+    const safeForm = {
+      ...form,
+      clinicDate: Timestamp.fromDate(new Date(form.clinicDate)),
+    };
 
     if (editTarget) {
-      await updateClinicVisit(editTarget.id, form.date, form.note);
+      await updateClinicVisit(customId, editTarget.id, safeForm);
       setVisits((prev) =>
-        prev.map((v) => (v.id === editTarget.id ? { ...v, ...form } : v))
+        prev.map((v) => (v.id === editTarget.id ? { ...v, ...safeForm } : v))
       );
       setEditTarget(null);
     } else {
-      const newVisit = await addClinicVisit(patientId, form.date, form.note);
+      const newVisit = await addClinicVisit(customId, safeForm);
       setVisits((prev) => [...prev, newVisit]);
+      setSelectedVisit(newVisit);
     }
-    setForm({ date: "", note: "" });
+
+    setForm({
+      clinicDate: "",
+      doctorName: "",
+      originalText: "",
+      summaryText: "",
+      translatedText: "",
+    });
+    setShowForm(false);
   };
 
   const handleEdit = (visit: ClinicVisit) => {
     setEditTarget(visit);
-    setForm({ date: visit.date, note: visit.note });
+    setShowForm(true);
+    setForm({
+      clinicDate:
+        visit.clinicDate instanceof Timestamp
+          ? visit.clinicDate.toDate().toISOString().slice(0, 10)
+          : visit.clinicDate,
+      doctorName: visit.doctorName,
+      originalText: visit.originalText,
+      summaryText: visit.summaryText,
+      translatedText: visit.translatedText,
+    });
   };
 
   const handleDelete = async (id: string) => {
-    await deleteClinicVisit(id);
+    await deleteClinicVisit(customId!, id);
     setVisits((prev) => prev.filter((v) => v.id !== id));
+    if (selectedVisit?.id === id) setSelectedVisit(null);
   };
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        🏥 진료 기록
-      </Typography>
+    <Box sx={{ display: "flex", gap: 8, p: 2 }}>
+      <Box sx={{ minWidth: 500 }}>
+        <Button
+          variant="text"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+          sx={{ mb: 2 }}
+        >
+          대시보드 메인으로 돌아가기
+        </Button>
+        <Typography variant="h4" gutterBottom>
+          🗂️ 진료 기록 목록
+        </Typography>
+        <List>
+          {visits.map((visit) => (
+            <ListItem
+              button
+              selected={selectedVisit?.id === visit.id}
+              onClick={() => setSelectedVisit(visit)}
+              key={visit.id}
+            >
+              <ListItemText
+                primary={
+                  visit.clinicDate instanceof Timestamp
+                    ? visit.clinicDate.toDate().toLocaleDateString()
+                    : new Date(visit.clinicDate).toLocaleDateString()
+                }
+                secondary={`👨‍⚕️ ${visit.doctorName}`}
+              />
+            </ListItem>
+          ))}
+        </List>
 
-      <List>
-        {visits.map((visit) => (
-          <ListItem
-            key={visit.id}
-            divider
-            secondaryAction={
-              isDoctor && (
-                <>
-                  <Button onClick={() => handleEdit(visit)}>수정</Button>
-                  <Button color="error" onClick={() => handleDelete(visit.id)}>
+        {isDoctor && (
+          <Button
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, height: "50px", fontSize: "20px" }}
+            onClick={() => {
+              setEditTarget(null);
+              setShowForm((prev) => !prev);
+              setForm({
+                clinicDate: "",
+                doctorName: "",
+                originalText: "",
+                summaryText: "",
+                translatedText: "",
+              });
+            }}
+          >
+            ➕ 새 기록 추가
+          </Button>
+        )}
+      </Box>
+
+      <Box sx={{ flex: 1, height: "100vh", overflowY: "auto" }}>
+        {selectedVisit && !showForm && (
+          <Card sx={{ mb: 2, p: 2, height: "70%" }}>
+            <CardContent>
+              <Typography variant="h5">
+                📅{" "}
+                {selectedVisit.clinicDate instanceof Timestamp
+                  ? selectedVisit.clinicDate.toDate().toLocaleDateString()
+                  : new Date(
+                      selectedVisit.clinicDate
+                    ).toLocaleDateString()}{" "}
+                | 👨‍⚕️ {selectedVisit.doctorName}
+              </Typography>
+              <Typography
+                variant="body1"
+                color="textSecondary"
+                sx={{ mt: 5, fontSize: "30px" }}
+              >
+                생성일:{" "}
+                {(() => {
+                  try {
+                    return selectedVisit.createdAt instanceof Timestamp
+                      ? selectedVisit.createdAt.toDate().toLocaleString()
+                      : new Date(selectedVisit.createdAt).toLocaleString();
+                  } catch {
+                    return "날짜 없음";
+                  }
+                })()}
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 3, fontSize: "25px" }}>
+                🧠 <strong>요약:</strong> {selectedVisit.summaryText}
+              </Typography>
+              <Typography variant="body1" sx={{ mt: 3, fontSize: "25px" }}>
+                💬 <strong>쉽게 풀이:</strong>
+              </Typography>
+              <ul>
+                {selectedVisit.translatedText
+                  .split("\n")
+                  .filter((line) => line.trim())
+                  .map((line, i) => (
+                    <li key={i}>
+                      <Typography variant="body1">{line}</Typography>
+                    </li>
+                  ))}
+              </ul>
+              <Typography variant="body1" sx={{ mt: 3, color: "gray", fontSize: "25px"}}>
+                🗣️ <strong>진료 중 설명:</strong> {selectedVisit.originalText}
+              </Typography>
+              {isDoctor && (
+                <Box sx={{ mt: 2}}>
+                  <Button sx={{fontSize: "20px"}} onClick={() => handleEdit(selectedVisit)}>
+                    수정
+                  </Button>
+                  <Button
+                    color="error"
+                    sx={{fontSize: "20px"}}
+                    onClick={() => handleDelete(selectedVisit.id)}
+                  >
                     삭제
                   </Button>
-                </>
-              )
-            }
-          >
-            <ListItemText primary={visit.date} secondary={visit.note} />
-          </ListItem>
-        ))}
-      </List>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-      {isDoctor && (
-        <>
-          <Divider sx={{ my: 3 }} />
-          <Typography variant="h6" gutterBottom>
-            {editTarget ? "기록 수정" : "새 기록 추가"}
-          </Typography>
+        {isDoctor && showForm && (
+          <>
+            <Typography variant="h6" gutterBottom>
+              {editTarget ? "기록 수정" : "새 기록 추가"}
+            </Typography>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              label="날짜"
-              type="date"
-              fullWidth
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              label="내용"
-              fullWidth
-              multiline
-              rows={3}
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              sx={{ mb: 2 }}
-            />
-            <Button type="submit" variant="contained">
-              {editTarget ? "수정" : "추가"}
-            </Button>
-          </Box>
-        </>
-      )}
+            <Box component="form" onSubmit={handleSubmit}>
+              <TextField
+                label="진료 날짜"
+                type="date"
+                fullWidth
+                value={form.clinicDate}
+                onChange={(e) =>
+                  setForm({ ...form, clinicDate: e.target.value })
+                }
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="의사 이름"
+                fullWidth
+                value={form.doctorName}
+                onChange={(e) =>
+                  setForm({ ...form, doctorName: e.target.value })
+                }
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="원문"
+                fullWidth
+                multiline
+                rows={3}
+                value={form.originalText}
+                onChange={(e) =>
+                  setForm({ ...form, originalText: e.target.value })
+                }
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="요약"
+                fullWidth
+                multiline
+                rows={2}
+                value={form.summaryText}
+                onChange={(e) =>
+                  setForm({ ...form, summaryText: e.target.value })
+                }
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="쉬운 표현"
+                fullWidth
+                multiline
+                rows={2}
+                value={form.translatedText}
+                onChange={(e) =>
+                  setForm({ ...form, translatedText: e.target.value })
+                }
+                sx={{ mb: 2 }}
+              />
+              <Button type="submit" variant="contained">
+                {editTarget ? "수정" : "추가"}
+              </Button>
+            </Box>
+          </>
+        )}
+      </Box>
     </Box>
   );
 }
