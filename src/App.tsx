@@ -1,6 +1,5 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import HomePage from "./pages/HomePage";
 import NotFoundPage from "./pages/NotFoundPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
@@ -36,7 +35,6 @@ function AppContent() {
     <Router>
       <Routes>
         <Route element={<HomeLayout />}>
-          {/* <Route index element={<HomePage />} /> */}
           <Route path="/" element={<Redirector />} />
 
           <Route path="login" element={<LoginPage />} />

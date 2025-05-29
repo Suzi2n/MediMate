@@ -135,7 +135,7 @@ export default function DashboardPage() {
                       }}
                     >
 
-                      <Typography variant="h4" sx={{ mb: 4 }}>🏥 진료 기록</Typography>
+                      <Typography variant="h4" sx={{ mb: 4 }}>🗂️ 진료 기록</Typography>
                       <Typography variant="h6" color="text.secondary">
                         병원 방문 이력 및 진단 내용 요약
                       </Typography>
