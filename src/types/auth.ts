@@ -46,16 +46,3 @@ export type ResponseMyInfoDto = CommonResponse<{
     updatedAt: Date;
 }>;
 
-
-
-// 응급 정보
-export type EmergencyInfo = {
-    name: string;
-    birth: string;
-    bloodType: string;
-    allergies: string[];
-    medications: string[];
-    conditions: string[];
-    emergencyContact: string;
-  };
-

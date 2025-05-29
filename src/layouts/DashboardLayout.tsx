@@ -130,7 +130,7 @@ export default function DashboardLayout() {
             <Typography variant="h6">Medimate 대시보드</Typography>
           ) : role === "user" ? (
             <Typography variant="h6">
-              Medimate 회원용 대시보드 (읽기용)
+              Medimate 회원용 대시보드
             </Typography>
           ) : null}
 
@@ -178,30 +178,39 @@ export default function DashboardLayout() {
         <Toolbar />
 
         <Box sx={{ mb: 3 }}>
-          <TextField
-            label="환자 검색 (예: 김철수#1234)"
-            variant="outlined"
-            fullWidth
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={handleSearch}>
-                    <SearchIcon />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&.Mui-focused fieldset": { borderColor: "#007AFF" },
-              },
-              "& label.Mui-focused": { color: "#007AFF" },
-            }}
-          />
-        </Box>
+  <TextField
+    label="환자 검색 (예: 김철수#1234)"
+    variant="outlined"
+    fullWidth
+    value={searchValue}
+    onChange={(e) => setSearchValue(e.target.value)}
+    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+    InputProps={{
+      endAdornment: (
+        <InputAdornment position="end">
+          <IconButton onClick={handleSearch}>
+            <SearchIcon />
+          </IconButton>
+        </InputAdornment>
+      ),
+      sx: {
+        fontSize: "1.2rem",
+        height: "60px",
+      },
+    }}
+    InputLabelProps={{
+      sx: { fontSize: "1.1rem" }, 
+    }}
+    sx={{
+      "& .MuiOutlinedInput-root": {
+        "&.Mui-focused fieldset": { borderColor: "#007AFF" },
+        fontSize: "1.2rem",
+      },
+      "& label.Mui-focused": { color: "#007AFF" },
+    }}
+  />
+</Box>
+
 
         {/* 하위 콘텐츠 렌더 */}
         <Outlet context={{ dashboardData, setDashboardData, patientName }} />

@@ -15,11 +15,10 @@ import { Timestamp } from "firebase/firestore";
 export interface ClinicVisit {
   id: string;
   clinicDate: Timestamp;
-  doctorName: string;
-  originalText: string;
+  //doctorName: string;
   summaryText: string;
-  translatedText: string;
   createdAt: Timestamp;
+  type: string;
 }
 
 // 전체 조회
@@ -36,11 +35,10 @@ export const getClinicVisits = async (
     return {
       id: doc.id,
       clinicDate: data.clinicDate as Timestamp,
-      doctorName: data.doctorName,
-      originalText: data.originalText,
+     // doctorName: data.doctorName,
       summaryText: data.summaryText,
-      translatedText: data.translatedText,
        createdAt: data.createdAt as Timestamp,
+       type: data.type
     };
   });
 };

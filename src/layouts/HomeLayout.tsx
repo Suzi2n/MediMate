@@ -52,14 +52,14 @@ const HomeLayout = () => {
                 <span className="text-gray-700 font-semibold">
                   {user.name}님
                 </span>
-                <Link
+                {/* <Link
                   to="/mypage"
                   className="text-sm px-4 py-2 text-[#A71963] bg-white hover:bg-gray-200 rounded border border-[#A71963] transition"
                 >
                   내 정보
-                </Link>
+                </Link> */}
                 <button
-                  className="text-sm px-4 py-2 text-[#A71963] bg-white hover:bg-gray-200 rounded border border-[#A71963] transition cursor-pointer"
+                  className="text-md text-black hover:underline transition cursor-pointer"
                   onClick={handleLogout}
                 >
                   로그아웃

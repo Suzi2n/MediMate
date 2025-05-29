@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,8 +14,8 @@ import { useOutletContext } from "react-router-dom";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  
-const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading] = useState(false);
 
   const { dashboardData, setDashboardData, patientName } = useOutletContext<{
     dashboardData: any;
@@ -27,9 +26,8 @@ const [loading, setLoading] = useState(false);
   console.log(dashboardData); // 테스트코드
 
   if (!dashboardData) return null;
-  
 
-   return (
+  return (
     <>
       {loading ? (
         <>
@@ -49,7 +47,7 @@ const [loading, setLoading] = useState(false);
         </>
       ) : (
         <>
-          <Typography variant="h5" align="center" margin={5}>
+          <Typography variant="h4" align="center" margin={5}>
             📋{" "}
             <Box component="span" fontWeight="bold">
               {patientName ?? dashboardData?.name}님
@@ -57,80 +55,123 @@ const [loading, setLoading] = useState(false);
             건강 정보
           </Typography>
 
-          <Grid container spacing={2} gap={10} justifyContent="center">
+          <Grid container spacing={10} justifyContent="center">
+            {/* 1. 증상 기록 */}
             <Grid item xs={12} md={4}>
-              <Card sx={{ minWidth: 250 }}>
-                <CardActionArea
-                  onClick={() => {
-              
-                  }}
-                >
+              <Card sx={{ minWidth: 250, boxShadow: 3 }}>
+                <CardActionArea onClick={() => navigate(
+                      `/dashboard/symptom-log/${dashboardData.customId}`
+                    )}>
                   <CardContent>
-                    <Typography variant="h6" sx={{ width: 650, height: 270 }}>
-                      📈 증상 기록
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      최근 증상 및 심각도 확인
-                    </Typography>
+                    <Box
+                      sx={{
+                        width: 650,
+                        height: 270,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography variant="h4" sx={{ mb: 4 }}>📈 증상 기록</Typography>
+                      <Typography variant="h6" color="text.secondary">
+                        최근 증상 및 심각도 확인
+                      </Typography>
+                    </Box>
                   </CardContent>
                 </CardActionArea>
               </Card>
             </Grid>
+
+            {/* 2. 약물 복용 이력 */}
             <Grid item xs={12} md={4}>
-              <Card sx={{ minWidth: 250 }}>
-                <CardActionArea
-                  onClick={() => {
-                   
-                  }}
-                >
+              <Card sx={{ minWidth: 250, boxShadow: 3  }}>
+                <CardActionArea onClick={() => navigate(
+                      `/dashboard/medication-history/${dashboardData.customId}`
+                    )}>
                   <CardContent>
-                    <Typography variant="h6" sx={{ width: 650, height: 270 }}>
-                      💊 약물 복용 이력
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      처방된 약물 및 복용 기간
-                    </Typography>
+                    <Box
+                      sx={{
+                        width: 650,
+                        height: 270,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography variant="h4" sx={{ mb: 4 }}>💊 약물 복용 이력</Typography>
+                      <Typography variant="h6" color="text.secondary">
+                        처방된 약물 및 복용 기간
+                      </Typography>
+                    </Box>
                   </CardContent>
                 </CardActionArea>
               </Card>
             </Grid>
+
+            {/* 3. 진료 기록 */}
             <Grid item xs={12} md={4}>
-              <Card sx={{ minWidth: 250 }}>
+              <Card sx={{ minWidth: 250 , boxShadow: 3 }}>
                 <CardActionArea
                   onClick={() =>
                     navigate(
                       `/dashboard/clinic-visits/${dashboardData.customId}`
-                    )}
-                    
-                    
-                >
-                  <CardContent>
-                    <Typography variant="h6" sx={{ width: 650, height: 270 }}>
-                      🏥 진료 기록
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      병원 방문 이력 및 진단 내용
-                    </Typography>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Card sx={{ minWidth: 250 }}>
-                <CardActionArea
-                  onClick={() =>
-                    navigate(
-                      `/dashboard/patient/${dashboardData.patientId}/health-records`
                     )
                   }
                 >
                   <CardContent>
-                    <Typography variant="h6" sx={{ width: 650, height: 270 }}>
-                      📝 건강 일지
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      건강 상태 및 생활 습관 기록
-                    </Typography>
+                    <Box
+                      sx={{
+                        width: 650,
+                        height: 270,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        textAlign: "center",
+                      }}
+                    >
+
+                      <Typography variant="h4" sx={{ mb: 4 }}>🏥 진료 기록</Typography>
+                      <Typography variant="h6" color="text.secondary">
+                        병원 방문 이력 및 진단 내용 요약
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+
+            {/* 4. 건강 일지 */}
+            <Grid item xs={12} md={4}>
+              <Card sx={{ minWidth: 250, boxShadow: 3  }}>
+                <CardActionArea
+                  onClick={() =>
+                    navigate(
+                      `/dashboard/health-records/${dashboardData.patientId}`
+                    )
+                  }
+                >
+                  <CardContent>
+                    <Box
+                      sx={{
+                        width: 650,
+                        height: 270,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography variant="h4" sx={{ mb: 4 }}>📝 건강 일지</Typography>
+                      <Typography variant="h6" color="text.secondary">
+                        건강 상태 및 생활 습관 기록
+                      </Typography>
+                    </Box>
                   </CardContent>
                 </CardActionArea>
               </Card>
